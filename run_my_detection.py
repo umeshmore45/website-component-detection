@@ -4,6 +4,7 @@
 import sys
 import os
 from pathlib import Path
+import cv2
 
 # Add the detector to path
 sys.path.append('.')
@@ -119,6 +120,19 @@ def main():
     
     print(f"\n✅ All done! Check the 'results' folder for your detected images.")
 
+def crop_by_class(image_path, detections, output_dir="crops"):
+    image_name = Path(image_path).stem
+    image_folder = Path(output_dir) / image_name
+    image_folder.mkdir(parents=True, exist_ok=True)
+    image = cv2.imread(image_path)
+    for i, det in enumerate(detections):
+        class_name = det['class']
+        if class_name in ['Banner', 'Header']:
+            x1, y1, x2, y2 = [int(coord) for coord in det['bbox']]
+            crop = image[y1:y2, x1:x2]
+            crop_path = image_folder / f"{class_name}_{i+1}.jpg"
+            cv2.imwrite(str(crop_path), crop)
+            print(f"Cropped {class_name} saved to: {crop_path}")
 
 def detect_on_new_image(image_path):
     detector = HeaderFooterDetector()
@@ -130,6 +144,7 @@ def detect_on_new_image(image_path):
             print(f"  {i+1}. {det['class']} (confidence: {det['confidence']:.2f})")
         detector.visualize_detections(image_path, detections, 'new_image_result.jpg')
         print("🖼️  Result saved as 'new_image_result.jpg'")
+        crop_by_class(image_path, detections)
     else:
         print("⚠️  No detections found in the new image.")
 
